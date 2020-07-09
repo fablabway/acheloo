@@ -22,6 +22,7 @@ DECLARE
 -- WSEARCH   VARCHAR2(100) := ' TABLE1|VIEW1|^NEGOZI'; -- LOOKING FOR...
 -- WSEARCH   VARCHAR2(100) := 'TIPO_NEGOZI'; -- LOOKING FOR...
 
+
   WCOLSEP   VARCHAR2(1)  := ';';            -- COLUMN SEPARATOR
   WCLOBTMP CLOB;
   WLENLOB  NUMBER;                          -- CLOB SIZE
@@ -99,9 +100,13 @@ BEGIN
         WOFFSET  :=WOFFSET   +WROWLEN+1;
         WNUMLINE := WNUMLINE + 1;
       END LOOP;
+      
+      END IF;
+      WOFFSET := 1;
+      END LOOP;
       --**********************
   FOR WREC IN
-  (SELECT NAME,OWNER,TYPE,TEXT
+  (SELECT NAME,OWNER,TYPE,TEXT,LINE
   FROM DBA_SOURCE
   WHERE 1=1
   AND REGEXP_LIKE(OWNER,WOBJOWNE,'i')
@@ -109,13 +114,10 @@ BEGIN
   AND NOT REGEXP_LIKE (TEXT,'demodocument','i')
   )
   LOOP
-         dbms_output.put_line( WREC.NAME||WCOLSEP||WREC.OWNER||WCOLSEP||WREC.TYPE||WCOLSEP|| TO_CHAR(WNUMLINE)||WCOLSEP||LTRIM(RTRIM(
+         dbms_output.put_line( WREC.NAME||WCOLSEP||WREC.OWNER||WCOLSEP||WREC.TYPE||WCOLSEP|| TO_CHAR(WREC.LINE)||WCOLSEP||LTRIM(RTRIM(
          REPLACE(WREC.TEXT,CHR(10),'')
          )));
   END LOOP;      
   --**********************      
-  END IF;
-    WOFFSET := 1;
-  END LOOP;
 END;
 /
