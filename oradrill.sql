@@ -8,26 +8,28 @@
   when        who   what
   -----------------------------------
   19.05.2016  mr    creates
+  04.07.2020  MR     CLOB DRILL ADDED
 */
 
 -- ALTER SESSION SET CURRENT_SCHEMA = MYOWNER;
 SET SERVEROUTPUT ON SIZE 1000000
 
 DECLARE
-    wrelcode    VARCHAR2(30) := 'WE';
-    woperator   VARCHAR2(30) := 'mauro';
-    wobjowne    VARCHAR2(30) := 'MYOWNER';     					-- OWNER
+    wrelcode    VARCHAR2(30) := 'WE';                       --  ??
+    woperator   VARCHAR2(30) := 'mauro';                    -- ??
+    wobjowne    VARCHAR2(30) := 'MYAPEX';     					-- OWNER
     wcolsep     VARCHAR2(1) := ';';            					-- COLUMN SEPARATOR
     wclobtmp    CLOB;
     wlenlob     NUMBER;                          					-- CLOB SIZE
     wnumline    NUMBER;                          					-- LINE COUNTER
-    woffset     PLS_INTEGER := 1;                   					-- SINCE LAST CR
+    woffset     NUMBER := 1;                   					-- SINCE LAST CR
+    WRECLOB     DBA_TAB_COLUMNS%ROWTYPE;
+    WCOLNAME    VARCHAR2(30);
+    WSTMTEXE VARCHAR2(32500);
     wonerow     VARCHAR2(32767);           					-- EXTRACTED FROM CLOB
     wrowlen     NUMBER;
-    wsearch     VARCHAR2(30) := '\''[1UPDJ297]'; 					-- LOOKING FOR...
---  WSEARCH   VARCHAR2(100) := 'TABLE1|VIEW1|OTHEROBJ|ANDSOON'; -- LOOKING FOR...
--- WSEARCH   VARCHAR2(100) := ' TABLE1|VIEW1|^NEGOZI'; 			-- LOOKING FOR...
--- WSEARCH   VARCHAR2(100) := 'mystring'; 					-- LOOKING FOR...
+    wsearch     VARCHAR2(30) := 'ARCA'; 					-- LOOKING FOR...
+
 BEGIN
     FOR wrec IN (
         SELECT
@@ -47,7 +49,8 @@ BEGIN
         THEN
       -- START DDL-METADATA AND EXTRACTS THE INVOLVED ROWS
             dbms_metadata.set_transform_param(dbms_metadata.session_transform,'EMIT_SCHEMA',false);
-            dbms_metadata.set_transform_param(dbms_metadata.session_transform,'SEGMENT_CREATION',false);
+-- 12            dbms_metadata.set_transform_param(dbms_metadata.session_transform,'SEGMENT_CREATION',false);
+dbms_metadata.set_transform_param(dbms_metadata.session_transform,'SEGMENT_ATTRIBUTES',FALSE);
             dbms_metadata.set_transform_param(dbms_metadata.session_transform,'PRETTY',true);
             dbms_metadata.set_transform_param(dbms_metadata.session_transform,'STORAGE',false);
             SELECT
@@ -107,7 +110,8 @@ BEGIN
         THEN
       -- START DDL-METADATA AND EXTRACTS THE INVOLVED ROWS
             dbms_metadata.set_transform_param(dbms_metadata.session_transform,'EMIT_SCHEMA',false);		-- CURRENT SCHEMA
-            dbms_metadata.set_transform_param(dbms_metadata.session_transform,'SEGMENT_CREATION',false);-- NO PHYSICAL INFO
+-- 12            dbms_metadata.set_transform_param(dbms_metadata.session_transform,'SEGMENT_CREATION',false);-- NO PHYSICAL INFO
+dbms_metadata.set_transform_param(dbms_metadata.session_transform,'SEGMENT_ATTRIBUTES',FALSE);
             dbms_metadata.set_transform_param(dbms_metadata.session_transform,'PRETTY',true);			-- BEAUTYFIER
             dbms_metadata.set_transform_param(dbms_metadata.session_transform,'STORAGE',false);			-- NO PHYSICAL INFO
             SELECT
@@ -181,7 +185,67 @@ BEGIN
         || wcolsep
         || ltrim(rtrim(replace(wrec.text,chr(10),'') ) ) );
     END LOOP;      
-  --**********************      
+  --**********************   
+  -- checks into clob
 
+/* 11.08.2020 */
+    FOR wrec IN (
+  SELECT TABLE_NAME,COLUMN_NAME FROM DBA_TAB_COLUMNS
+  WHERE 1=1
+  AND OWNER=wobjowne
+  AND DATA_TYPE='CLOB'
+    ) LOOP
+
+       WSTMTEXE := 
+'declare  
+wlenlob NUMBER;  
+woffset NUMBER; 
+WNUMLINE NUMBER; 
+WROWLEN NUMBER; 
+WONEROW VARCHAR2(300); 
+WCLOBTMP CLOB; 
+wcolsep    VARCHAR2(1) := '';'';
+BEGIN 
+    woffset := 1;   
+    wnumline := 1; 
+FOR WREC2 IN (SELECT '||WREC.COLUMN_NAME||' FROM '||WREC.TABLE_NAME||
+    ' WHERE INSTR('||WREC.COLUMN_NAME||','''||WSEARCH||''''||')>0 ) LOOP ' ||CHR(10)||
+    'wlenlob := dbms_lob.getlength(WREC2.'||WREC.COLUMN_NAME||'); '||CHR(10)||
+      ' --   dbms_output.put_line(WSTMTEXE); '||CHR(10)||
+           '  wnumline := 1; '||CHR(10)||
+           ' wclobtmp := WREC2.'||WREC.COLUMN_NAME||'; '||CHR(10)||
+           '  WHILE woffset <= wlenlob LOOP '||CHR(10)||
+            '    wrowlen := instr(wclobtmp,chr(10),woffset) - woffset; '||CHR(10)||
+            '    IF '||CHR(10)||
+            '        wrowlen < 0 '||CHR(10)||
+            '    THEN '||CHR(10)||
+            '       wrowlen := wlenlob + 1 - woffset; '||CHR(10)||
+            '    END IF; '||CHR(10)||
+            '    wonerow := substr(wclobtmp,'||woffset||',wrowlen); '||CHR(10)||
+            '    IF '||CHR(10)||
+            '        regexp_like(wonerow,'||''''||wsearch||''''||',''i'') '||CHR(10)||
+            '    THEN '||CHR(10)||
+            '        dbms_output.put_line( '''||wrec.TABLE_NAME ||    -- wip
+           ''' ' ||
+            ' || wcolsep '||CHR(10)||
+            '        || ''CLOB'''||CHR(10)||
+            '        || wcolsep '||CHR(10)||
+            '        || TO_CHAR(wnumline)'||CHR(10)||
+            '        || wcolsep' ||CHR(10)||
+            '        || ltrim(rtrim(wonerow) ) ); '||CHR(10)||
+            '    END IF; ' ||CHR(10)||
+            ' wnumline := wnumline + 1; '||CHR(10)||
+            '    woffset := woffset + wrowlen + 1; '||CHR(10)||
+            ' END LOOP; '||CHR(10)||
+            '--    woffset := woffset + wrowlen + 1; '||CHR(10)||
+            '    ' ||CHR(10)||
+            'END LOOP; '||CHR(10)||
+            ' END;';
+
+    EXECUTE IMMEDIATE WSTMTEXE; -- INTO wclobtmp;
+
+    END LOOP;
+    
 END;
 /
+
