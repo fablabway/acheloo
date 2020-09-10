@@ -9,5 +9,5 @@ Discover any string into:
 
 USAGE
 Before to start, change the statement:
-   wsearch     VARCHAR2(30) := 'ARCA'; 					-- LOOKING FOR...
+<pre>   wsearch     VARCHAR2(30) := 'ARCA'; 					-- LOOKING FOR...</pre>
 with appropriate string.   
