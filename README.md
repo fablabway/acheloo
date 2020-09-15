@@ -4,7 +4,7 @@ Includes some tools for Oracle db.
 Platform: Oracle + PL/SQL
 
 <hr>
-oradrill.sql:
+oradrill.sql:<br>
 Discover any string into:
 - store code (DDL)
 - view      (DDL)
@@ -17,5 +17,5 @@ Before to start, change the statement:
 with appropriate string.   
 
 <hr>
-youdir.sql
+youdir.sql<br>
 performances on i/O for Oracle directories.
