@@ -3,7 +3,7 @@
   file:        oradrill.sql
   project:     db tools/acheloo
   description:  where is my string?
-  author:       Mauro Rossolato
+  author:       Mauro Rossolato  fablabway@gmail.com
   licence:      Creative Commons BY-NC-ND
   when        who   what
   -----------------------------------
